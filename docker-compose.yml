@@ -1,0 +1,94 @@
+version: "3.9"
+
+services:
+  celery-redis:
+    image: redis:latest
+    container_name: celery-redis
+    restart: always
+    expose:
+      - ${REDIS_PORT}
+    networks:
+      - celery-network
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+
+  celery-rabbitmq:
+    image: rabbitmq:management
+    container_name: celery-rabbitmq
+    restart: always
+    expose:
+      - ${RABBITMQ_PORT}
+    env_file:
+      - .env
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - celery-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  celery-worker-handler:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile-worker
+    container_name: celery-worker
+    restart: always
+    command: >
+      sh -c "celery -A src.celery_conf.celery_app worker -l info -n celery-worker-handler -Q handle"
+    volumes:
+      - .:/app
+    networks:
+      - celery-network
+    env_file:
+      - .env
+    depends_on:
+      - celery-redis
+      - celery-rabbitmq
+
+  celery-beat:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile-worker
+    container_name: celery-beat
+    restart: always
+    command: >
+      sh -c "celery -A src.celery_conf.celery_app beat -l info"
+    volumes:
+      - .:/app
+    networks:
+      - celery-network
+    env_file:
+      - .env
+    depends_on:
+      - celery-rabbitmq
+      - celery-redis
+
+  celery-flower:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile-worker
+    container_name: celery-flower
+    restart: always
+    command: >
+      sh -c "celery flower --basic_auth=${FLOWER_USER}:${FLOWER_PASSWORD}"
+    environment:
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - FLOWER_PORT=${FLOWER_PORT}
+    networks:
+      - celery-network
+    ports:
+      - ${FLOWER_PORT}:${FLOWER_PORT}
+    depends_on:
+      - celery-worker-handler
+      - celery-beat
+
+
+volumes:
+  rabbitmq_data:
+
+networks:
+  celery-network:
+    driver: bridge
