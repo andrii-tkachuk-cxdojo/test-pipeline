@@ -9,7 +9,7 @@ from src.celery_conf import celery_app
 from src.tasks_handlers import DefineSentimental, DependencyManager
 
 logger.add(
-    "../logging/pipeline.log",
+    "logging/pipeline.log",
     rotation="500 MB",
     retention="10 days",
     compression="zip",
@@ -39,16 +39,28 @@ def run_task_chain() -> None:
         task_chain.apply_async()
 
 
-@celery_app.task(name="newscatcher_hook")
-def task_newscatcher_hook(**kwargs) -> Dict:
+@celery_app.task(
+    name="newscatcher_hook",
+    bind=True,
+    retry_backoff=True,
+    max_retries=3,
+    retry_backoff_max=60,
+)
+def task_newscatcher_hook(self, **kwargs) -> Dict:
     logger.info("HTTP hook to newscatcher in process...")
     # data = HttpHook().news_catcher_hook(client=kwargs['client'])
     logger.info("Got data from newscatcher.")
     return {"client": kwargs["client"], "data": "Hi, man! You are stupid!"}
 
 
-@celery_app.task(name="process_news_data")
-def task_process_news_data(data: Dict) -> Dict:
+@celery_app.task(
+    name="process_news_data",
+    bind=True,
+    retry_backoff=True,
+    max_retries=5,
+    retry_backoff_max=120,
+)
+def task_process_news_data(self, data: Dict) -> Dict:
     logger.info(
         f"Processing data from NewsCatcher for client: {data['client']['client']}"
     )
@@ -72,6 +84,7 @@ def task_make_decision(data: Dict) -> None:
 #     logger.info("Signal calls, that mean quality_check is SUCCESS")
 
 
+@task_failure.connect(sender=run_task_chain)
 @task_failure.connect(sender=task_newscatcher_hook)
 @task_failure.connect(sender=task_process_news_data)
 @task_failure.connect(sender=task_make_decision)
