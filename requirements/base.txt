@@ -7,5 +7,6 @@ boto3
 httpx
 singleton_decorator
 torch==2.3.0
+spacy
 sentence-transformers==2.7.0
 huggingface_hub

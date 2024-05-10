@@ -6,7 +6,7 @@ from httpx import Client
 from src.tasks_handlers.dependencies import DependencyManager
 
 
-class DefineSentimental:
+class DefineSentiment:
     def __init__(self):
         self.model = DependencyManager().model
         self.tokenizer = DependencyManager().tokenizer

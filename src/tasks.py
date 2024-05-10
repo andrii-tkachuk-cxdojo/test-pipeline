@@ -6,7 +6,7 @@ from loguru import logger
 
 # from celery.signals import task_success
 from src.celery_conf import celery_app
-from src.tasks_handlers import DefineSentimental, DependencyManager
+from src.tasks_handlers import DefineSentimental, DependencyManager, HttpHook
 
 logger.add(
     "logging/pipeline.log",
@@ -48,9 +48,21 @@ def run_task_chain() -> None:
 )
 def task_newscatcher_hook(self, **kwargs) -> Dict:
     logger.info("HTTP hook to newscatcher in process...")
-    # data = HttpHook().news_catcher_hook(client=kwargs['client'])
-    logger.info("Got data from newscatcher.")
-    return {"client": kwargs["client"], "data": "Hi, man! You are stupid!"}
+    newscatcher_data = HttpHook().news_catcher_hook(
+        params=kwargs["client"]["newscatcher_params"]
+    )
+    if newscatcher_data["articles"]:
+        logger.info(
+            f"Found {len(newscatcher_data['articles'])} actual data in NewsCatcher"
+        )
+    else:
+        logger.warning(
+            "Unfortunately, the actual data in NewsCatcher not found."
+        )
+    return {
+        "client": kwargs["client"],
+        "newscatcher_data": newscatcher_data["articles"],
+    }
 
 
 @celery_app.task(
@@ -64,17 +76,17 @@ def task_process_news_data(self, data: Dict) -> Dict:
     logger.info(
         f"Processing data from NewsCatcher for client: {data['client']['client']}"
     )
-    if data["client"]["nlp"]:
-        sentimental = DefineSentimental().process_text(data["data"])
-        data.update({"sentimental": sentimental})
-
+    if data["client"]["nlp"] and data["newscatcher_data"]["articles"]:
+        for article in data["newscatcher_data"]["articles"]:
+            sentimental = DefineSentimental().process_text(article["content"])
+            article.update({"sentimental": sentimental})
     return data
 
 
 @celery_app.task(name="make_decision")
 def task_make_decision(data: Dict) -> None:
     logger.info(
-        f"Start send data for '{data['client']['client']}' to '{data['client']['to']}'"
+        f"Start send data for '{data['client']['client']}' to '{data['client']['send_to']}'"
     )
     ...
 
