@@ -1,5 +1,7 @@
 FROM python:3.10-slim-buster
 
+ARG SPACY_MODEL_CORE
+
 RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
@@ -12,3 +14,5 @@ WORKDIR /app
 COPY requirements /requirements
 
 RUN pip install --no-cache-dir -r /requirements/base.txt
+
+RUN python3 -m spacy download $SPACY_MODEL_CORE

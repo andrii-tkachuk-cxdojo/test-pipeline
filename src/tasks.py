@@ -6,7 +6,7 @@ from loguru import logger
 
 # from celery.signals import task_success
 from src.celery_conf import celery_app
-from src.tasks_handlers import DefineSentimental, DependencyManager, HttpHook
+from src.tasks_handlers import DefineSentiment, DependencyManager, HttpHook
 
 logger.add(
     "logging/pipeline.log",
@@ -78,7 +78,7 @@ def task_process_news_data(self, data: Dict) -> Dict:
     )
     if data["client"]["nlp"] and data["newscatcher_data"]["articles"]:
         for article in data["newscatcher_data"]["articles"]:
-            sentimental = DefineSentimental().process_text(article["content"])
+            sentimental = DefineSentiment().process_text(article["content"])
             article.update({"sentimental": sentimental})
     return data
 

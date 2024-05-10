@@ -34,6 +34,8 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile-worker
+      args:
+        SPACY_MODEL_CORE: ${SPACY_MODEL_CORE}
     container_name: celery-worker
     restart: always
     command: >
@@ -52,6 +54,8 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile-worker
+      args:
+        SPACY_MODEL_CORE: ${SPACY_MODEL_CORE}
     container_name: celery-beat
     restart: always
     command: >
