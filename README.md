@@ -1,5 +1,5 @@
 # test-pipeline
-For start
+For start (by default in ```celery_conf.py``` defined run cron task at ```08:30 "Europe/Kiev"``` time zone.)
 ```shell
 docker-compose up --build
 ```
@@ -19,4 +19,5 @@ FLOWER_PASSWORD=Qt3FoG0xRKX08iTSEHlk1A6
 FLOWER_PORT=6655
 
 NEWSCATCHER_API_KEY=...
+SPACY_MODEL_CORE=en_core_web_trf
 ```
