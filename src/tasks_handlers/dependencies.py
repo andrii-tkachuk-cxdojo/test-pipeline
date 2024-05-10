@@ -1,12 +1,14 @@
 import json
 
 import httpx
+import spacy
 from httpx import Client
 from loguru import logger
 from singleton_decorator import singleton
+from spacy import Language
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
-from src.constants import NEWSCATCHER_API_KEY
+from src.constants import NEWSCATCHER_API_KEY, SPACY_MODEL_CORE
 
 
 @singleton
@@ -23,9 +25,10 @@ class DependencyManager:
 
         self._model = None
         self._tokenizer = None
+        self._spacy_core_nlp = None
 
     @property
-    def clients(self):
+    def clients(self) -> dict:
         if self._clients is None:
             with open("clients.json", "r") as file:
                 self._clients = json.load(file)
@@ -42,7 +45,7 @@ class DependencyManager:
         return self._newscatcher_client
 
     @property
-    def model(self):
+    def model(self) -> AutoModelForSequenceClassification:
         if self._model is None:
             self._model = AutoModelForSequenceClassification.from_pretrained(
                 self.sentimental_model
@@ -53,7 +56,7 @@ class DependencyManager:
         return self._model
 
     @property
-    def tokenizer(self):
+    def tokenizer(self) -> AutoTokenizer:
         if self._tokenizer is None:
             self._tokenizer = AutoTokenizer.from_pretrained(
                 self.sentimental_model
@@ -62,3 +65,12 @@ class DependencyManager:
                 f"Model '{self.sentimental_model}' initialized success."
             )
         return self._tokenizer
+
+    @property
+    def spacy_core_nlp(self) -> Language:
+        if self._spacy_core_nlp is None:
+            self._spacy_core_nlp = spacy.load(SPACY_MODEL_CORE)
+            logger.info(
+                f"SPACY_MODEL_CORE model: {SPACY_MODEL_CORE} is loaded."
+            )
+        return self._spacy_core_nlp

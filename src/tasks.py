@@ -26,6 +26,7 @@ def setup_model(signal, sender, **kwargs):
     _ = manager.tokenizer
     _ = manager.newscatcher_client
     _ = manager.clients
+    _ = manager.spacy_core_nlp
 
 
 @celery_app.task(name="clients_pipeline.tasks.run_task_chain")
