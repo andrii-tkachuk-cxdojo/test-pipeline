@@ -2,7 +2,7 @@
   {
     "client": "Client 1",
     "nlp": false,
-    "languages": false,
+    "languages": null,
     "mention": false,
     "sources": [
       "0rtl.de",

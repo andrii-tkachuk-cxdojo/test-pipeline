@@ -1,7 +1,34 @@
 from celery import Celery
 from celery.schedules import crontab
 
+# from kombu import Exchange, Queue
 from src.constants import CELERY_BACKEND_URL, CELERY_BROKER_URL
+
+# default_queue_name = 'default'
+# default_exchange_name = 'default'
+# default_routing_key = 'default'
+#
+# sunshine_queue_name = 'sunshine'
+# sunshine_routing_key = 'sunshine'
+#
+# moon_queue_name = 'moon'
+# moon_routing_key = 'moon'
+#
+# default_exchange = Exchange(default_exchange_name, type='direct')
+# default_queue = Queue(
+#     default_queue_name,
+#     default_exchange,
+#     routing_key=default_routing_key)
+#
+# sunshine_queue = Queue(
+#     sunshine_queue_name,
+#     default_exchange,
+#     routing_key=sunshine_routing_key)
+#
+# moon_queue = Queue(
+#     moon_queue_name,
+#     default_exchange,
+#     routing_key=moon_queue_name)
 
 
 class BaseCeleryConfig:
@@ -36,12 +63,20 @@ class AppCeleryConfig(BaseCeleryConfig):
 
 def create_celery_app(name, config_class, task_routes) -> Celery:
     app = Celery(name, include=["src.tasks"])
+
+    # app.conf.task_queues = (default_queue, sunshine_queue, moon_queue)
+    #
+    # app.conf.task_default_queue = default_queue_name
+    # app.conf.task_default_exchange = default_exchange_name
+    # app.conf.task_default_routing_key = default_routing_key
+
     app.config_from_object(config_class)
     app.conf.task_routes = task_routes
+    app.conf.timezone = "Europe/Kiev"
     app.conf.beat_schedule = {
         "clients_pipeline.tasks.run_task_chain": {
             "task": "clients_pipeline.tasks.run_task_chain",
-            "schedule": crontab(hour=8, minute=0),
+            "schedule": crontab(hour=8, minute=30),
         },
     }
     return app
