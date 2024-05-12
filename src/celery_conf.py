@@ -1,8 +1,14 @@
 from celery import Celery
 from celery.schedules import crontab
+from loguru import logger
 
 # from kombu import Exchange, Queue
-from src.constants import CELERY_BACKEND_URL, CELERY_BROKER_URL
+from src.constants import (
+    CELERY_BACKEND_URL,
+    CELERY_BROKER_URL,
+    MONGO_COLLECTION_CLIENTS,
+)
+from src.db import MongoDBService
 
 # default_queue_name = 'default'
 # default_exchange_name = 'default'
@@ -64,6 +70,11 @@ class AppCeleryConfig(BaseCeleryConfig):
 def create_celery_app(name, config_class, task_routes) -> Celery:
     app = Celery(name, include=["src.tasks"])
 
+    app.conf.mongodb_backend_settings = {
+        "database": "etl-db",
+        "taskmeta_collection": "celery-backend",
+    }
+
     # app.conf.task_queues = (default_queue, sunshine_queue, moon_queue)
     #
     # app.conf.task_default_queue = default_queue_name
@@ -73,12 +84,6 @@ def create_celery_app(name, config_class, task_routes) -> Celery:
     app.config_from_object(config_class)
     app.conf.task_routes = task_routes
     app.conf.timezone = "Europe/Kiev"
-    app.conf.beat_schedule = {
-        "clients_pipeline.tasks.run_task_chain": {
-            "task": "clients_pipeline.tasks.run_task_chain",
-            "schedule": crontab(hour=8, minute=30),
-        },
-    }
     return app
 
 
@@ -88,7 +93,46 @@ celery_app = create_celery_app(
     {
         "clients_pipeline.tasks.run_task_chain": {"queue": "handle"},
         "newscatcher_hook": {"queue": "handle"},
+        "making_decision": {"queue": "making-decision"},
         "process_news_data": {"queue": "handle"},
-        "make_decision": {"queue": "handle"},
+        "send_data": {"queue": "handle"},
     },
 )
+
+
+@celery_app.on_after_configure.connect
+def setup_periodic_tasks(sender, **kwargs):
+    connection = MongoDBService()
+    connection.connect()
+    connection.load_data_from_json("../clients.json", MONGO_COLLECTION_CLIENTS)
+
+    schedule_data = connection.get_all_clients(MONGO_COLLECTION_CLIENTS)
+    for client in schedule_data:
+        logger.info(
+            f"Schedule for client '{client['client']}' updated success."
+        )
+        update_schedule_from_db(sender, client)
+
+
+def update_schedule_from_db(sender, db_data):
+    schedule = {}
+    for client in db_data:
+        task_name = f"task_for_{client['client']}"
+        cron_args = parse_cron_string(client["cron"])
+        schedule[task_name] = {
+            "task": "clients_pipeline.tasks.run_task_chain",
+            "schedule": crontab(**cron_args),
+            "kwargs": {"client": client["client"]},
+        }
+    sender.conf.beat_schedule = schedule
+
+
+def parse_cron_string(cron_str):
+    minute, hour, day_of_month, month, day_of_week = cron_str.split()
+    return {
+        "minute": minute,
+        "hour": hour,
+        "day_of_month": day_of_month,
+        "month_of_year": month,
+        "day_of_week": day_of_week,
+    }

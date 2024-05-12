@@ -8,5 +8,6 @@ httpx
 singleton_decorator
 torch==2.3.0
 spacy
+pymongo
 sentence-transformers==2.7.0
 huggingface_hub

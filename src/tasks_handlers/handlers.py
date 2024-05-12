@@ -1,27 +1,15 @@
 from typing import Dict, List, Literal, Optional
 
-import spacy
 import torch
 from httpx import Client
 from loguru import logger
-from spacy import Language
 
 from src.tasks_handlers.dependencies import DependencyManager
 
 
 class ClusterizationSentences:
-    def __init__(
-        self,
-        spacy_core_nlp: Language,
-        spacy_model_core: str = "en_core_web_trf",
-    ):
-        if not spacy_core_nlp:
-            self.spacy_core_nlp = spacy.load(spacy_model_core)
-            logger.info(
-                f"Not found '{spacy_model_core}'. So '{spacy_model_core}' loaded again."
-            )
-        else:
-            self.spacy_core_nlp = spacy_core_nlp
+    def __init__(self):
+        self.spacy_core_nlp = DependencyManager().DependencyManager
 
     def get_clusters(self, article_text: str) -> Optional[List[str]]:
         doc = self.spacy_core_nlp(article_text)

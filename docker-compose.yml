@@ -1,16 +1,30 @@
 version: "3.9"
 
 services:
-  celery-redis:
-    image: redis:latest
-    container_name: celery-redis
+  celery-mongodb:
+    image: mongo:latest
+    container_name: celery-mongodb
     restart: always
-    expose:
-      - ${REDIS_PORT}
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
+    ports:
+      - ${MONGO_PORT}:${MONGO_PORT}
+    volumes:
+      - celery-mongodb:/data/db
     networks:
       - celery-network
-    healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
+
+  #  celery-redis:
+  #    image: redis:latest
+  #    container_name: celery-redis
+  #    restart: always
+  #    expose:
+  #      - ${REDIS_PORT}
+  #    networks:
+  #      - celery-network
+  #    healthcheck:
+  #      test: [ "CMD", "redis-cli", "ping" ]
 
   celery-rabbitmq:
     image: rabbitmq:management
@@ -36,10 +50,10 @@ services:
       dockerfile: docker/Dockerfile-worker
       args:
         SPACY_MODEL_CORE: ${SPACY_MODEL_CORE}
-    container_name: celery-worker
+    container_name: celery-worker-handler
     restart: always
     command: >
-      sh -c "celery -A src.celery_conf.celery_app worker -l info -n celery-worker-handler -Q handle"
+      sh -c "WORKER=celery-worker-handler celery -A src.celery_conf.celery_app worker -l info -n celery-worker-handler -Q handle"
     volumes:
       - .:/app
     networks:
@@ -47,15 +61,33 @@ services:
     env_file:
       - .env
     depends_on:
-      - celery-redis
+      - celery-mongodb
       - celery-rabbitmq
 
-  celery-beat:
+  celery-worker-making-decision:
     build:
       context: .
       dockerfile: docker/Dockerfile-worker
       args:
         SPACY_MODEL_CORE: ${SPACY_MODEL_CORE}
+    container_name: celery-worker-making-decision
+    restart: always
+    command: >
+      sh -c "WORKER=celery-worker-making-decision celery -A src.celery_conf.celery_app worker -l info -n celery-worker-making-decision -Q making-decision"
+    volumes:
+      - .:/app
+    networks:
+      - celery-network
+    env_file:
+      - .env
+    depends_on:
+      - celery-mongodb
+      - celery-rabbitmq
+
+  celery-beat:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile-beat
     container_name: celery-beat
     restart: always
     command: >
@@ -68,16 +100,15 @@ services:
       - .env
     depends_on:
       - celery-rabbitmq
-      - celery-redis
+      - celery-mongodb
 
   celery-flower:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile-worker
+    image: mher/flower:latest
     container_name: celery-flower
     restart: always
     command: >
-      sh -c "celery flower --basic_auth=${FLOWER_USER}:${FLOWER_PASSWORD}"
+      sh -c "pip install flower==1.2.0 && \
+            celery flower --basic_auth=${FLOWER_USER}:${FLOWER_PASSWORD}"
     environment:
       - CELERY_BROKER_URL=${CELERY_BROKER_URL}
       - FLOWER_PORT=${FLOWER_PORT}
@@ -87,11 +118,13 @@ services:
       - ${FLOWER_PORT}:${FLOWER_PORT}
     depends_on:
       - celery-worker-handler
+      - celery-worker-making-decision
       - celery-beat
 
 
 volumes:
   rabbitmq_data:
+  celery-mongodb:
 
 networks:
   celery-network:

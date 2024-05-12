@@ -1,3 +1,4 @@
+import os
 from typing import Dict
 
 from celery import chain, signals
@@ -25,19 +26,23 @@ def setup_model(signal, sender, **kwargs):
     _ = manager.model
     _ = manager.tokenizer
     _ = manager.newscatcher_client
-    _ = manager.clients
-    _ = manager.spacy_core_nlp
+    # _ = manager.clients
+    # _ = manager.spacy_core_nlp
+    _ = manager.mongodb_connection
+
+    if os.getenv("WORKER") == "celery-worker-handler":
+        manager.mongodb_connection.load_data_from_json("../clients.json")
 
 
 @celery_app.task(name="clients_pipeline.tasks.run_task_chain")
-def run_task_chain() -> None:
-    for client in DependencyManager().clients:
-        task_chain = chain(
-            task_newscatcher_hook.s(client=client)
-            | task_process_news_data.s()
-            | task_make_decision.s()
-        )
-        task_chain.apply_async()
+def run_task_chain(**kwargs) -> None:
+    task_chain = chain(
+        task_newscatcher_hook.s(client=kwargs["client"])
+        | task_making_decision.s()
+        | task_process_news_data.s()
+        | task_send_data.s()
+    )
+    task_chain.apply_async()
 
 
 @celery_app.task(
@@ -67,6 +72,18 @@ def task_newscatcher_hook(self, **kwargs) -> Dict:
 
 
 @celery_app.task(
+    name="making_decision",
+    bind=True,
+    retry_backoff=True,
+    max_retries=5,
+    retry_backoff_max=120,
+)
+def task_making_decision(self, data: Dict) -> Dict:
+    logger.info("Checking data for exist in previous client...")
+    return data
+
+
+@celery_app.task(
     name="process_news_data",
     bind=True,
     retry_backoff=True,
@@ -74,9 +91,7 @@ def task_newscatcher_hook(self, **kwargs) -> Dict:
     retry_backoff_max=120,
 )
 def task_process_news_data(self, data: Dict) -> Dict:
-    logger.info(
-        f"Processing data from NewsCatcher for client: {data['client']['client']}"
-    )
+    logger.info(f"Processing client`s data for client: {data['client']}")
     if data["client"]["nlp"] and data["newscatcher_data"]["articles"]:
         for article in data["newscatcher_data"]["articles"]:
             sentimental = DefineSentiment().process_text(article["content"])
@@ -84,8 +99,8 @@ def task_process_news_data(self, data: Dict) -> Dict:
     return data
 
 
-@celery_app.task(name="make_decision")
-def task_make_decision(data: Dict) -> None:
+@celery_app.task(name="send_data")
+def task_send_data(data: Dict) -> None:
     logger.info(
         f"Start send data for '{data['client']['client']}' to '{data['client']['send_to']}'"
     )
@@ -99,8 +114,9 @@ def task_make_decision(data: Dict) -> None:
 
 @task_failure.connect(sender=run_task_chain)
 @task_failure.connect(sender=task_newscatcher_hook)
+@task_failure.connect(sender=task_making_decision)
 @task_failure.connect(sender=task_process_news_data)
-@task_failure.connect(sender=task_make_decision)
+@task_failure.connect(sender=task_send_data)
 def task_failure_handler(
     sender=None,
     task_id=None,

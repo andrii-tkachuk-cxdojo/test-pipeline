@@ -1,8 +1,9 @@
 [
   {
-    "client": "Client 1",
+    "client": "Client_1",
     "nlp": false,
     "send_to": "s3_path",
+    "cron": "0 0 * * *",
     "newscatcher_params": {
       "q": "*",
       "sources": [
@@ -61,9 +62,10 @@
     }
   },
   {
-    "client": "Client 2",
+    "client": "Client_2",
     "nlp": false,
     "send_to": "pub_sub",
+    "cron": "0 12 * * *",
     "newscatcher_params": {
       "q": "*",
       "lang": [
@@ -125,9 +127,10 @@
     }
   },
   {
-    "client": "Client 3",
+    "client": "Client_3",
     "nlp": true,
     "send_to": "sqs",
+    "cron": "0 15 * * *",
     "newscatcher_params": {
       "lang": [
         "fr"
