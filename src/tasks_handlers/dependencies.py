@@ -7,7 +7,7 @@ from spacy import Language
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 from src.constants import NEWSCATCHER_API_KEY, SPACY_MODEL_CORE
-from src.db import MongoDBService
+from src.db import MongoDBInit
 
 
 @singleton
@@ -28,9 +28,9 @@ class DependencyManager:
         self._mongodb_connection = None
 
     @property
-    def mongodb_connection(self) -> MongoDBService:
+    def mongodb_connection(self) -> MongoDBInit:
         if self._mongodb_connection is None:
-            connection = MongoDBService()
+            connection = MongoDBInit()
             connection.connect()
             self._mongodb_connection = connection
         return self._mongodb_connection

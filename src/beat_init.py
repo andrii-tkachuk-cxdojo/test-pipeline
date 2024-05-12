@@ -3,13 +3,13 @@ from loguru import logger
 
 from src.celery_conf import AppCeleryConfig, celery_app
 from src.constants import MONGO_COLLECTION_CLIENTS
-from src.db import MongoDBService
+from src.db import MongoDBInit
 
 
 @celery_app.on_after_configure.connect
-def setup_periodic_tasks(sender: AppCeleryConfig, **kwargs):
+def setup_periodic_tasks(sender: AppCeleryConfig, **kwargs) -> None:
     logger.info("Connecting to the database from beat...")
-    connection = MongoDBService()
+    connection = MongoDBInit()
     connection.connect()
     connection.load_data_from_json("clients.json")
 
@@ -21,7 +21,9 @@ def setup_periodic_tasks(sender: AppCeleryConfig, **kwargs):
         )
 
 
-def update_schedule_from_db(sender: AppCeleryConfig, client_data: dict):
+def update_schedule_from_db(
+    sender: AppCeleryConfig, client_data: dict
+) -> None:
     schedule = sender.conf.beat_schedule.copy()
 
     task_name = f"task_for_{client_data['client']}"

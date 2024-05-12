@@ -53,7 +53,7 @@ services:
     container_name: celery-worker-handler
     restart: always
     command: >
-      sh -c "WORKER=celery-worker-handler celery -A src.celery_conf.celery_app worker -l info -n celery-worker-handler -Q handle"
+      sh -c "WORKER=handler celery -A src.celery_conf.celery_app worker -l info -n celery-worker-handler -Q handler"
     volumes:
       - .:/app
     networks:
@@ -73,7 +73,7 @@ services:
     container_name: celery-worker-making-decision
     restart: always
     command: >
-      sh -c "WORKER=celery-worker-making-decision celery -A src.celery_conf.celery_app worker -l info -n celery-worker-making-decision -Q making-decision"
+      sh -c "WORKER=model celery -A src.celery_conf.celery_app worker -l info -n celery-worker-making-decision -Q model"
     volumes:
       - .:/app
     networks:

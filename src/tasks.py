@@ -7,7 +7,12 @@ from loguru import logger
 
 # from celery.signals import task_success
 from src.celery_conf import celery_app
-from src.tasks_handlers import DefineSentiment, DependencyManager, HttpHook
+from src.tasks_handlers import (
+    DefineSentiment,
+    DependencyManager,
+    HttpHook,
+    MongoDBServices,
+)
 
 logger.add(
     "logging/pipeline.log",
@@ -25,10 +30,10 @@ def setup_model(signal, sender, **kwargs):
     manager = DependencyManager()
     _ = manager.mongodb_connection
 
-    if os.getenv("WORKER") == "celery-worker-handler":
+    if os.getenv("WORKER") == "handler":
         _ = manager.newscatcher_client
 
-    if os.getenv("WORKER") == "celery-worker-making-decision":
+    if os.getenv("WORKER") == "model":
         _ = manager.spacy_core_nlp
         _ = manager.model
         _ = manager.tokenizer
@@ -38,8 +43,7 @@ def setup_model(signal, sender, **kwargs):
 def run_task_chain(**kwargs) -> None:
     task_chain = chain(
         task_newscatcher_hook.s(client=kwargs["client"])
-        | task_making_decision.s()
-        | task_process_news_data.s()
+        | task_specific_process_news_data.s()
         | task_send_data.s()
     )
     task_chain.apply_async()
@@ -53,13 +57,18 @@ def run_task_chain(**kwargs) -> None:
     retry_backoff_max=60,
 )
 def task_newscatcher_hook(self, **kwargs) -> Dict:
-    logger.info("HTTP hook to newscatcher in process...")
-    newscatcher_data = HttpHook().news_catcher_hook(
-        params=kwargs["client"]["newscatcher_params"]
+    newscatcher_params = MongoDBServices().get_specific_client_data(
+        client=kwargs["client"], data="newscatcher_params"
     )
+    logger.info(f"Http hook for '{kwargs["client"]}' in progress...")
+    newscatcher_data = HttpHook().news_catcher_hook(params=newscatcher_params)
     if newscatcher_data["articles"]:
         logger.info(
             f"Found {len(newscatcher_data['articles'])} actual data in NewsCatcher"
+        )
+        logger.info("Checking data for exist in previous clients...")
+        MongoDBServices().check_or_add_news(
+            client=kwargs["client"], news=newscatcher_data["articles"]
         )
     else:
         logger.warning(
@@ -67,35 +76,26 @@ def task_newscatcher_hook(self, **kwargs) -> Dict:
         )
     return {
         "client": kwargs["client"],
-        "newscatcher_data": newscatcher_data["articles"],
     }
 
 
 @celery_app.task(
-    name="making_decision",
+    name="specific_process_news_data",
     bind=True,
     retry_backoff=True,
     max_retries=5,
     retry_backoff_max=120,
 )
-def task_making_decision(self, data: Dict) -> Dict:
-    logger.info("Checking data for exist in previous client...")
-    return data
-
-
-@celery_app.task(
-    name="process_news_data",
-    bind=True,
-    retry_backoff=True,
-    max_retries=5,
-    retry_backoff_max=120,
-)
-def task_process_news_data(self, data: Dict) -> Dict:
+def task_specific_process_news_data(self, data: Dict) -> Dict:
     logger.info(f"Processing client`s data for client: {data['client']}")
-    if data["client"]["nlp"] and data["newscatcher_data"]["articles"]:
-        for article in data["newscatcher_data"]["articles"]:
+
+    clients_news = MongoDBServices().get_clients_news(client=data["client"])
+
+    if data["client"]["nlp"]:
+        for article in clients_news:
             sentimental = DefineSentiment().process_text(article["content"])
             article.update({"sentimental": sentimental})
+        logger.info("Processed with NLP success.")
     return data
 
 
@@ -114,8 +114,7 @@ def task_send_data(data: Dict) -> None:
 
 @task_failure.connect(sender=run_task_chain)
 @task_failure.connect(sender=task_newscatcher_hook)
-@task_failure.connect(sender=task_making_decision)
-@task_failure.connect(sender=task_process_news_data)
+@task_failure.connect(sender=task_specific_process_news_data)
 @task_failure.connect(sender=task_send_data)
 def task_failure_handler(
     sender=None,

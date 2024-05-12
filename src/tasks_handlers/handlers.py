@@ -1,9 +1,10 @@
-from typing import Dict, List, Literal, Optional
+from typing import Dict, List, Literal, Optional, Union
 
 import torch
 from httpx import Client
 from loguru import logger
 
+from src.constants import MONGO_COLLECTION_CLIENTS
 from src.tasks_handlers.dependencies import DependencyManager
 
 
@@ -50,6 +51,32 @@ class HttpHook:
     def news_catcher_hook(self, client: dict) -> Dict:
         response = self.newscatcher_client.get(self.URL, params=client)
         return response.json()
+
+
+class MongoDBServices:
+    def __init__(self):
+        self.connection = DependencyManager().mongodb_connection
+
+    def get_all_clients(self) -> list:
+        clients_collection = self.connection.get_collection(
+            MONGO_COLLECTION_CLIENTS
+        )
+        return list(clients_collection.find())
+
+    def get_specific_client_data(
+        self, client: str, data: str
+    ) -> Union[str, list]:
+        client_data_collection = self.connection.get_collection(
+            MONGO_COLLECTION_CLIENTS
+        )
+        client_data = client_data_collection.find_one({"client": client})
+        return client_data[data] if client_data else None
+
+    def check_or_add_news(self, client: str, news: list):
+        ...
+
+    def get_clients_news(self, client: str):
+        ...
 
 
 class ProcessedData:

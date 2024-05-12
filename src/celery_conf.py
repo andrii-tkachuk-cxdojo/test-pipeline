@@ -84,10 +84,9 @@ celery_app = create_celery_app(
     "celery_etl_newscatcher",
     AppCeleryConfig,
     {
-        "clients_pipeline.tasks.run_task_chain": {"queue": "handle"},
-        "newscatcher_hook": {"queue": "handle"},
-        "making_decision": {"queue": "making-decision"},
-        "process_news_data": {"queue": "making-decision"},
-        "send_data": {"queue": "handle"},
+        "clients_pipeline.tasks.run_task_chain": {"queue": "handler"},
+        "newscatcher_hook": {"queue": "handler"},
+        "specific_process_news_data": {"queue": "model"},
+        "send_data": {"queue": "handler"},
     },
 )

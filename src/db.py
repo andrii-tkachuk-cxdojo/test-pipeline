@@ -14,7 +14,7 @@ from src.constants import (
 )
 
 
-class MongoDBService:
+class MongoDBInit:
     def __init__(self):
         self._mongo_client = None
         self._db = None
@@ -48,10 +48,6 @@ class MongoDBService:
             logger.info(
                 f"Data from {json_file_path} loaded into collection {MONGO_COLLECTION_CLIENTS}"
             )
-
-    def get_all_clients(self, collection_name):
-        clients_collection = self.get_collection(collection_name)
-        return list(clients_collection.find())
 
     def close_connection(self):
         if self._mongo_client:
