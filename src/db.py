@@ -45,7 +45,7 @@ class MongoDBService:
                 collection.insert_many(data)
             else:
                 collection.insert_one(data)
-            print(
+            logger.info(
                 f"Data from {json_file_path} loaded into collection {MONGO_COLLECTION_CLIENTS}"
             )
 

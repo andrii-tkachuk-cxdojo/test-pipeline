@@ -19,7 +19,6 @@ class DependencyManager:
     sentimental_model: str = "ProsusAI/finbert"
 
     def __init__(self):
-        # self._clients = None
         self._newscatcher_client = None
 
         self._model = None
@@ -35,14 +34,6 @@ class DependencyManager:
             connection.connect()
             self._mongodb_connection = connection
         return self._mongodb_connection
-
-    # @property
-    # def clients(self) -> dict:
-    #     if self._clients is None:
-    #         with open("clients.json", "r") as file:
-    #             self._clients = json.load(file)
-    #             logger.info("Client`s requirements initialized success.")
-    #     return self._clients
 
     @property
     def newscatcher_client(self) -> Client:

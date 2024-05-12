@@ -91,7 +91,7 @@ services:
     container_name: celery-beat
     restart: always
     command: >
-      sh -c "celery -A src.celery_conf.celery_app beat -l info"
+      sh -c "celery -A src.beat_init.celery_app beat -l info"
     volumes:
       - .:/app
     networks:

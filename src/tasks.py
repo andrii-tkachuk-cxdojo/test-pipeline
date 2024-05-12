@@ -23,15 +23,15 @@ logger.add(
 @signals.worker_process_init.connect
 def setup_model(signal, sender, **kwargs):
     manager = DependencyManager()
-    _ = manager.model
-    _ = manager.tokenizer
-    _ = manager.newscatcher_client
-    # _ = manager.clients
-    # _ = manager.spacy_core_nlp
     _ = manager.mongodb_connection
 
     if os.getenv("WORKER") == "celery-worker-handler":
-        manager.mongodb_connection.load_data_from_json("../clients.json")
+        _ = manager.newscatcher_client
+
+    if os.getenv("WORKER") == "celery-worker-making-decision":
+        _ = manager.spacy_core_nlp
+        _ = manager.model
+        _ = manager.tokenizer
 
 
 @celery_app.task(name="clients_pipeline.tasks.run_task_chain")
