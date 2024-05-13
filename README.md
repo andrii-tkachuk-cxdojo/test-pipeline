@@ -22,4 +22,4 @@ NEWSCATCHER_API_KEY=...
 SPACY_MODEL_CORE=en_core_web_trf
 ```
 ## Simple logic scheme of test-pipeline
-![scheme](images/sсheme.jpg)
+![scheme](images/sсheme.png)

@@ -64,16 +64,16 @@ services:
       - celery-mongodb
       - celery-rabbitmq
 
-  celery-worker-making-decision:
+  celery-compute-worker:
     build:
       context: .
       dockerfile: docker/Dockerfile-worker
       args:
         SPACY_MODEL_CORE: ${SPACY_MODEL_CORE}
-    container_name: celery-worker-making-decision
+    container_name: celery-compute-worker
     restart: always
     command: >
-      sh -c "WORKER=model celery -A src.celery_conf.celery_app worker -l info -n celery-worker-making-decision -Q model"
+      sh -c "WORKER=model celery -A src.celery_conf.celery_app worker -l info -n celery-compute-worker -Q model"
     volumes:
       - .:/app
     networks:
