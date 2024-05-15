@@ -15,17 +15,6 @@ services:
     networks:
       - celery-network
 
-  #  celery-redis:
-  #    image: redis:latest
-  #    container_name: celery-redis
-  #    restart: always
-  #    expose:
-  #      - ${REDIS_PORT}
-  #    networks:
-  #      - celery-network
-  #    healthcheck:
-  #      test: [ "CMD", "redis-cli", "ping" ]
-
   celery-rabbitmq:
     image: rabbitmq:management
     container_name: celery-rabbitmq
@@ -44,16 +33,14 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  celery-worker-handler:
+  celery-io-worker:
     build:
       context: .
-      dockerfile: docker/Dockerfile-worker
-      args:
-        SPACY_MODEL_CORE: ${SPACY_MODEL_CORE}
-    container_name: celery-worker-handler
+      dockerfile: docker/Dockerfile-soft
+    container_name: celery-io-worker
     restart: always
     command: >
-      sh -c "WORKER=handler celery -A src.celery_conf.celery_app worker -l info -n celery-worker-handler -Q handler"
+      sh -c "WORKER=io celery -A src.celery_conf.celery_app worker -l info -n celery-handler-worker -Q io-worker"
     volumes:
       - .:/app
     networks:
@@ -64,16 +51,34 @@ services:
       - celery-mongodb
       - celery-rabbitmq
 
-  celery-compute-worker:
+  celery-cpu-worker:
     build:
       context: .
-      dockerfile: docker/Dockerfile-worker
+      dockerfile: docker/Dockerfile-compute
       args:
         SPACY_MODEL_CORE: ${SPACY_MODEL_CORE}
-    container_name: celery-compute-worker
+    container_name: celery-cpu-worker
     restart: always
     command: >
-      sh -c "WORKER=model celery -A src.celery_conf.celery_app worker -l info -n celery-compute-worker -Q model"
+      sh -c "WORKER=cpu celery -A src.celery_conf.celery_app worker -l info -n celery-compute-worker -Q cpu-worker"
+    volumes:
+      - .:/app
+    networks:
+      - celery-network
+    env_file:
+      - .env
+    depends_on:
+      - celery-mongodb
+      - celery-rabbitmq
+
+  celery-sender-worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile-soft
+    container_name: celery-sender-worker
+    restart: always
+    command: >
+      sh -c "WORKER=sending celery -A src.celery_conf.celery_app worker -l info -n celery-receiver-worker -Q sender-worker"
     volumes:
       - .:/app
     networks:
@@ -87,7 +92,7 @@ services:
   celery-beat:
     build:
       context: .
-      dockerfile: docker/Dockerfile-beat
+      dockerfile: docker/Dockerfile-soft
     container_name: celery-beat
     restart: always
     command: >
@@ -117,8 +122,9 @@ services:
     ports:
       - ${FLOWER_PORT}:${FLOWER_PORT}
     depends_on:
-      - celery-worker-handler
-      - celery-worker-making-decision
+      - celery-io-worker
+      - celery-cpu-worker
+      - celery-sender-worker
       - celery-beat
 
 

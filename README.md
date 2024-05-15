@@ -1,21 +1,27 @@
 # test-pipeline
-For start (by default in ```celery_conf.py``` defined run cron task at ```08:30 "Europe/Kiev"``` time zone.)
+For start (by default celery beat initially setup all users from ```client.json``` to MongoDB and will run the cron tasks at ```"Europe/Kiev"``` time zone (defined in ```celery_conf.py```) in the defined client`s time.)
 ```shell
 docker-compose up --build
 ```
 ```.env
-CELERY_BACKEND_URL=redis://celery-redis:6379/10
-CELERY_BROKER_URL=amqp://newscatcher:password@celery-rabbitmq:5672/
+CELERY_BACKEND_URL=mongodb://username:password@celery-mongodb:27017/
+CELERY_BROKER_URL=amqp://newscatcher:R6881t0q@celery-rabbitmq:5672/
 
-REDIS_PORT=6379
+MONGO_USER=username
+MONGO_PASSWORD=password
+MONGO_PORT=27017
+MONGO_HOST=celery-mongodb
+MONGO_DB=etl-db
+MONGO_COLLECTION_NEWS=news
+MONGO_COLLECTION_CLIENTS=clients
 
 RABBITMQ_DEFAULT_USER=newscatcher
-RABBITMQ_DEFAULT_PASS=password
+RABBITMQ_DEFAULT_PASS=...
 RABBITMQ_PORT=5672
 # RABBITMQ_PORT_WEB=15672
 
 FLOWER_USER=newscatcher_admin
-FLOWER_PASSWORD=Qt3FoG0xRKX08iTSEHlk1A6
+FLOWER_PASSWORD=...
 FLOWER_PORT=6655
 
 NEWSCATCHER_API_KEY=...

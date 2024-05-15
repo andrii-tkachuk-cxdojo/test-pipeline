@@ -19,13 +19,14 @@ class MongoDBInit:
         self._mongo_client = None
         self._db = None
 
-    def connect(self):
+    def connect(self) -> MongoClient:
         if not self._mongo_client:
             MONGODB_URL = f"mongodb://{MONGO_USER}:{MONGO_PASSWORD}@{MONGO_HOST}:{MONGO_PORT}"
             self._mongo_client = MongoClient(MONGODB_URL)
             self._db = self._mongo_client[MONGO_DB]
             self.setup_indexes()
             logger.info("MongoDB connection initialized successfully.")
+        return self._mongo_client
 
     def setup_indexes(self):
         clients_collection = self._db[MONGO_COLLECTION_CLIENTS]

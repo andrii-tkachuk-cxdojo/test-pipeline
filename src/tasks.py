@@ -30,19 +30,24 @@ def setup_model(signal, sender, **kwargs):
     manager = DependencyManager()
     _ = manager.mongodb_connection
 
-    if os.getenv("WORKER") == "handler":
+    if os.getenv("WORKER") == "io":
         _ = manager.newscatcher_client
 
-    if os.getenv("WORKER") == "model":
-        _ = manager.spacy_core_nlp
-        _ = manager.model
-        _ = manager.tokenizer
+    # if os.getenv("WORKER") == "cpu":
+    #     _ = manager.spacy_core_nlp
+    #     _ = manager.model
+    #     _ = manager.tokenizer
+
+    if os.getenv("WORKER") == "sending":
+        ...
+        # _ = manager.boto3_client
+        # _ = manager.google_client
 
 
 @celery_app.task(name="clients_pipeline.tasks.run_task_chain")
 def run_task_chain(**kwargs) -> None:
     task_chain = chain(
-        task_newscatcher_hook.s(client=kwargs["client"])
+        task_newscatcher_hook.s(client=kwargs["client_id"])
         | task_specific_process_news_data.s()
         | task_send_data.s()
     )
@@ -58,24 +63,27 @@ def run_task_chain(**kwargs) -> None:
 )
 def task_newscatcher_hook(self, **kwargs) -> Dict:
     newscatcher_params = MongoDBServices().get_specific_client_data(
-        client=kwargs["client"], data="newscatcher_params"
+        client_id=kwargs["client_id"], data="newscatcher_params"
     )
-    logger.info(f"Http hook for '{kwargs["client"]}' in progress...")
-    newscatcher_data = HttpHook().news_catcher_hook(params=newscatcher_params)
+    logger.info(
+        f"Http hook for {kwargs['client_id']} with params '{newscatcher_params}' in progress..."
+    )
+
+    newscatcher_data = HttpHook().newscatcher_hook(params=newscatcher_params)
     if newscatcher_data["articles"]:
         logger.info(
             f"Found {len(newscatcher_data['articles'])} actual data in NewsCatcher"
         )
         logger.info("Checking data for exist in previous clients...")
         MongoDBServices().check_or_add_news(
-            client=kwargs["client"], news=newscatcher_data["articles"]
+            client=kwargs["client_id"], news=newscatcher_data["articles"]
         )
     else:
         logger.warning(
             "Unfortunately, the actual data in NewsCatcher not found."
         )
     return {
-        "client": kwargs["client"],
+        "client": kwargs["client_id"],
     }
 
 

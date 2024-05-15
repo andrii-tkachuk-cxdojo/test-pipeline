@@ -2,8 +2,8 @@ from celery.schedules import crontab
 from loguru import logger
 
 from src.celery_conf import AppCeleryConfig, celery_app
-from src.constants import MONGO_COLLECTION_CLIENTS
 from src.db import MongoDBInit
+from src.tasks_handlers import MongoDBServices
 
 
 @celery_app.on_after_configure.connect
@@ -13,11 +13,11 @@ def setup_periodic_tasks(sender: AppCeleryConfig, **kwargs) -> None:
     connection.connect()
     connection.load_data_from_json("clients.json")
 
-    schedule_data = connection.get_all_clients(MONGO_COLLECTION_CLIENTS)
+    schedule_data = MongoDBServices(connection=connection).get_all_clients()
     for client in schedule_data:
         update_schedule_from_db(sender, client)
         logger.info(
-            f"Schedule for client '{client['client']}' updated success."
+            f"Schedule for client_id '{client['_id']}' updated success."
         )
 
 
@@ -26,12 +26,12 @@ def update_schedule_from_db(
 ) -> None:
     schedule = sender.conf.beat_schedule.copy()
 
-    task_name = f"task_for_{client_data['client']}"
+    task_name = f"task_for_{client_data['_id']}"
     cron_args = parse_cron_string(client_data["cron"])
     schedule[task_name] = {
         "task": "clients_pipeline.tasks.run_task_chain",
         "schedule": crontab(**cron_args),
-        "kwargs": {"client": client_data["client"]},
+        "kwargs": {"client_id": str(client_data["_id"])},
     }
     sender.conf.beat_schedule = schedule
 
