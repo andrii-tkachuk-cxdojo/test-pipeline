@@ -7,11 +7,12 @@ from loguru import logger
 
 # from celery.signals import task_success
 from src.celery_conf import celery_app
+from src.send_strategy import SendingStrategyFactory
 from src.tasks_handlers import (
-    DefineSentiment,
     DependencyManager,
     HttpHook,
     MongoDBServices,
+    NlpProcesData,
 )
 
 logger.add(
@@ -79,7 +80,7 @@ def task_newscatcher_hook(self, **kwargs) -> Dict:
             "Unfortunately, the actual data in NewsCatcher not found."
         )
     return {
-        "client": kwargs["client_id"],
+        "client_id": kwargs["client_id"],
     }
 
 
@@ -91,24 +92,41 @@ def task_newscatcher_hook(self, **kwargs) -> Dict:
     retry_backoff_max=120,
 )
 def task_specific_process_news_data(self, data: Dict) -> Dict:
-    logger.info(f"Processing client`s data for client: {data['client']}")
+    client_data = MongoDBServices().get_specific_client_data(
+        client_id=data["client_id"], data="nlp"
+    )
+    logger.info(f"Checked NLP requirement for client_id '{data['client']}'")
 
-    clients_news = MongoDBServices().get_clients_news(client=data["client"])
-
-    if data["client"]["nlp"]:
-        for article in clients_news:
-            sentimental = DefineSentiment().process_text(article["content"])
-            article.update({"sentimental": sentimental})
+    if client_data["nlp"]:
+        clients_news = MongoDBServices().get_clients_news(
+            client_id=data["client_id"], nlp=client_data["nlp"]
+        )
+        NlpProcesData(
+            clients_news=clients_news,
+            code_word=client_data["newscatcher_params"]["q"],
+        ).handle_articles()
         logger.info("Processed with NLP success.")
-    return data
+    return {
+        "client_id": data["client_id"],
+    }
 
 
 @celery_app.task(name="send_data")
 def task_send_data(data: Dict) -> None:
-    logger.info(
-        f"Start send data for '{data['client']['client']}' to '{data['client']['send_to']}'"
+    client_data = MongoDBServices().get_specific_client_data(
+        client_id=data["client_id"], data="send_to"
     )
-    ...
+    strategy = SendingStrategyFactory(
+        sending_mode=client_data["send_to"], client_id=data["client_id"]
+    )
+
+    clients_news = MongoDBServices().get_clients_news(
+        client_id=data["client_id"], nlp=client_data["nlp"]
+    )
+    strategy.send(clients_news)
+    logger.info(
+        f"Data for client_id {data["client_id"]} sent and pipeline is finished"
+    )
 
 
 # @task_success.connect(sender=task_quality_check)
