@@ -1,5 +1,6 @@
 # test-pipeline
 For start (by default celery beat initially setup all users from ```client.json``` to MongoDB and will run the cron tasks at ```"Europe/Kiev"``` time zone (defined in ```celery_conf.py```) in the defined client`s time.)
+- For prod env, you should rechange ```.env.client*``` files for the Security Vault tool, for instance, AWS Vault and other similar.
 ```shell
 docker-compose up --build
 ```
