@@ -34,10 +34,10 @@ def setup_model(signal, sender, **kwargs):
     if os.getenv("WORKER") == "io":
         _ = manager.newscatcher_client
 
-    # if os.getenv("WORKER") == "cpu":
-    #     _ = manager.spacy_core_nlp
-    #     _ = manager.model
-    #     _ = manager.tokenizer
+    if os.getenv("WORKER") == "cpu":
+        _ = manager.spacy_core_nlp
+        _ = manager.model
+        _ = manager.tokenizer
 
     if os.getenv("WORKER") == "sending":
         ...
