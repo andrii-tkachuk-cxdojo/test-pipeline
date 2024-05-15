@@ -65,18 +65,14 @@ def task_newscatcher_hook(self, **kwargs) -> Dict:
     newscatcher_params = MongoDBServices().get_specific_client_data(
         client_id=kwargs["client_id"], data="newscatcher_params"
     )
-    logger.info(
-        f"Http hook for {kwargs['client_id']} with params '{newscatcher_params}' in progress..."
-    )
-
     newscatcher_data = HttpHook().newscatcher_hook(params=newscatcher_params)
     if newscatcher_data["articles"]:
         logger.info(
-            f"Found {len(newscatcher_data['articles'])} actual data in NewsCatcher"
+            f"Found {len(newscatcher_data['articles'])} actual news for client '{kwargs['client_id']}' in NewsCatcher"
         )
-        logger.info("Checking data for exist in previous clients...")
+        logger.info("Checking news for exist in previous clients...")
         MongoDBServices().check_or_add_news(
-            client=kwargs["client_id"], news=newscatcher_data["articles"]
+            client_id=kwargs["client_id"], news=newscatcher_data["articles"]
         )
     else:
         logger.warning(
