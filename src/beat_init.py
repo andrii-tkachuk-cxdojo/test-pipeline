@@ -3,7 +3,7 @@ from loguru import logger
 
 from src.celery_conf import AppCeleryConfig, celery_app
 from src.db import MongoDBInit
-from src.tasks_handlers import MongoDBServices
+from src.utils import MongoDBServices
 
 
 @celery_app.on_after_configure.connect

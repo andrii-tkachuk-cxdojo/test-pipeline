@@ -7,12 +7,12 @@ from loguru import logger
 
 # from celery.signals import task_success
 from src.celery_conf import celery_app
-from src.send_strategy import SendingStrategyFactory
+from src.dependencies import DependencyManager
 from src.tasks_handlers import (
-    DependencyManager,
     HttpHook,
     MongoDBServices,
     NlpProcesData,
+    SendingStrategyFactory,
 )
 
 logger.add(
@@ -69,7 +69,7 @@ def task_newscatcher_hook(self, **kwargs) -> Dict:
     newscatcher_data = HttpHook().newscatcher_hook(params=newscatcher_params)
     if newscatcher_data["articles"]:
         logger.info(
-            f"Found {len(newscatcher_data['articles'])} actual news for client '{kwargs['client_id']}' in NewsCatcher"
+            f"Found '{len(newscatcher_data['articles'])}' actual news for client '{kwargs['client_id']}' in NewsCatcher"
         )
         logger.info("Checking news for exist in previous clients...")
         MongoDBServices().check_or_add_news(
@@ -125,7 +125,7 @@ def task_send_data(data: Dict) -> None:
     )
     strategy.send(clients_news)
     logger.info(
-        f"Data for client_id {data["client_id"]} sent and pipeline is finished"
+        f"Data for client_id '{data['client_id']}' sent and pipeline is finished"
     )
 
 

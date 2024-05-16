@@ -9,5 +9,6 @@ singleton_decorator
 torch==2.3.0
 spacy
 pymongo
+google-cloud-pubsub
 sentence-transformers==2.7.0
 huggingface_hub
