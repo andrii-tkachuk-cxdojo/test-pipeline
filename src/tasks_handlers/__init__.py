@@ -1,2 +1,2 @@
-from .handlers import *
-from .send_strategy import *
+from .nlp_handler import *
+from .sending_handlers import *

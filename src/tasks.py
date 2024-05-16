@@ -27,15 +27,16 @@ def setup_model(signal, sender, **kwargs):
     manager = DependencyManager()
     _ = manager.mongodb_connection
 
-    # if os.getenv("WORKER") == "io":
-    #     _ = manager.newscatcher_client
+    if os.getenv("WORKER") == "io":
+        _ = manager.newscatcher_client
 
     if os.getenv("WORKER") == "cpu":
         _ = manager.spacy_core_nlp
         _ = manager.model
         _ = manager.tokenizer
 
-    # if os.getenv("WORKER") == "sending":
+    if os.getenv("WORKER") == "sending":
+        ...
     # _ = manager.boto3_client
     # _ = manager.google_client
 
