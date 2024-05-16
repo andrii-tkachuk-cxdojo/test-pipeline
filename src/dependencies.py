@@ -48,10 +48,10 @@ class DependencyManager:
     def model(self) -> AutoModelForSequenceClassification:
         if self._model is None:
             self._model = AutoModelForSequenceClassification.from_pretrained(
-                self.sentimental_model
+                self.sentimental_model, force_download=True
             )
             logger.info(
-                f"Tokenizer '{self.sentimental_model}' initialized success."
+                f"Model '{self.sentimental_model}' initialized success."
             )
         return self._model
 
@@ -59,10 +59,10 @@ class DependencyManager:
     def tokenizer(self) -> AutoTokenizer:
         if self._tokenizer is None:
             self._tokenizer = AutoTokenizer.from_pretrained(
-                self.sentimental_model
+                self.sentimental_model, force_download=True
             )
             logger.info(
-                f"Model '{self.sentimental_model}' initialized success."
+                f"Tokenizer '{self.sentimental_model}' initialized success."
             )
         return self._tokenizer
 

@@ -57,7 +57,7 @@ class BaseCeleryConfig:
 
 class AppCeleryConfig(BaseCeleryConfig):
     worker_prefetch_multiplier = 1  # For local start
-    worker_concurrency = 3
+    worker_concurrency = 1  # For local start
 
 
 def create_celery_app(name, config_class, task_routes) -> Celery:

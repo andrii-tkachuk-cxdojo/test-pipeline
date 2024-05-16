@@ -6,7 +6,7 @@ import boto3
 from google.cloud import pubsub_v1
 from loguru import logger
 
-from src.tasks_handlers import SecretsManager
+from src.utils import SecretsManager
 
 
 class SendingStrategy(ABC):

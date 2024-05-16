@@ -8,12 +8,8 @@ from loguru import logger
 # from celery.signals import task_success
 from src.celery_conf import celery_app
 from src.dependencies import DependencyManager
-from src.tasks_handlers import (
-    HttpHook,
-    MongoDBServices,
-    NlpProcesData,
-    SendingStrategyFactory,
-)
+from src.tasks_handlers import NlpProcesData, SendingStrategyFactory
+from src.utils import HttpHook, MongoDBServices
 
 logger.add(
     "logging/pipeline.log",
@@ -31,18 +27,17 @@ def setup_model(signal, sender, **kwargs):
     manager = DependencyManager()
     _ = manager.mongodb_connection
 
-    if os.getenv("WORKER") == "io":
-        _ = manager.newscatcher_client
+    # if os.getenv("WORKER") == "io":
+    #     _ = manager.newscatcher_client
 
     if os.getenv("WORKER") == "cpu":
         _ = manager.spacy_core_nlp
         _ = manager.model
         _ = manager.tokenizer
 
-    if os.getenv("WORKER") == "sending":
-        ...
-        # _ = manager.boto3_client
-        # _ = manager.google_client
+    # if os.getenv("WORKER") == "sending":
+    # _ = manager.boto3_client
+    # _ = manager.google_client
 
 
 @celery_app.task(name="clients_pipeline.tasks.run_task_chain")
@@ -93,9 +88,9 @@ def task_newscatcher_hook(self, **kwargs) -> Dict:
 )
 def task_specific_process_news_data(self, data: Dict) -> Dict:
     client_data = MongoDBServices().get_specific_client_data(
-        client_id=data["client_id"], data="nlp"
+        client_id=data["client_id"]
     )
-    logger.info(f"Checked NLP requirement for client_id '{data['client']}'")
+    logger.info(f"Checked NLP requirement for client_id '{data['client_id']}'")
 
     if client_data["nlp"]:
         clients_news = MongoDBServices().get_clients_news(
@@ -105,13 +100,23 @@ def task_specific_process_news_data(self, data: Dict) -> Dict:
             clients_news=clients_news,
             code_word=client_data["newscatcher_params"]["q"],
         ).handle_articles()
-        logger.info("Processed with NLP success.")
+        logger.info(
+            f"Processed with NLP for client '{data['client_id']}' success."
+        )
+    else:
+        logger.info(f"Client '{data['client_id']}' not needed NLP.")
     return {
         "client_id": data["client_id"],
     }
 
 
-@celery_app.task(name="send_data")
+@celery_app.task(
+    name="send_data",
+    bind=True,
+    retry_backoff=True,
+    max_retries=3,
+    retry_backoff_max=60,
+)
 def task_send_data(data: Dict) -> None:
     client_data = MongoDBServices().get_specific_client_data(
         client_id=data["client_id"], data="send_to"

@@ -28,13 +28,16 @@ class MongoDBServices:
 
     def get_specific_client_data(
         self, client_id: str, data: str = None
-    ) -> Union[str, list]:
+    ) -> Optional[Union[str, list]]:
         client_data_collection = self.connection.get_collection(
             MONGO_COLLECTION_CLIENTS
         )
         client_data = client_data_collection.find_one(
             {"_id": ObjectId(client_id)}
         )
+        if not client_data:
+            logger.error(f"Client with '{client_id}' does not exist")
+            return None
         return client_data[data] if data else client_data
 
     def check_or_add_news(self, client_id: str, news: List[dict]) -> None:
@@ -77,16 +80,25 @@ class MongoDBServices:
 
     def get_clients_news(
         self, client_id: str, nlp: bool = False
-    ) -> List[Dict]:
+    ) -> Optional[List[Dict]]:
         news_collection = self.connection.get_collection(MONGO_COLLECTION_NEWS)
-        projection = {"_id": 0, "clients": 0}
-        if not nlp:
-            projection["sentiment"] = 0
 
-        articles_cursor = news_collection.find(
-            {"clients": client_id}, {"_id": 0, "clients": 0}, projection
-        )
-        articles = [doc["article"] for doc in articles_cursor]
+        query = {"clients": client_id}
+        projection = {"article": 1, "_id": 1}
+        if nlp:
+            projection["sentiment"] = 1
+
+        articles_cursor = news_collection.find(query, projection)
+
+        articles = []
+        for doc in articles_cursor:
+            article_data = doc.get("article", {})
+            article_data["_id"] = doc["_id"]
+            if nlp:
+                sentiment = doc.get("sentiment", None)
+                if sentiment:
+                    article_data["sentiment"] = sentiment
+            articles.append(article_data)
         return articles
 
     def update_article_sentiment(
@@ -107,7 +119,7 @@ class MongoDBServices:
 
 class ClusterizationSentences:
     def __init__(self):
-        self.spacy_core_nlp = DependencyManager().DependencyManager
+        self.spacy_core_nlp = DependencyManager().spacy_core_nlp
 
     def get_clusters(self, article_text: str) -> Optional[List[str]]:
         doc = self.spacy_core_nlp(article_text)

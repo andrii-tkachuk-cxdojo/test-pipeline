@@ -1,10 +1,6 @@
 from typing import List, Tuple
 
-from src.tasks_handlers import (
-    ClusterizationSentences,
-    DefineSentiment,
-    MongoDBServices,
-)
+from src.utils import ClusterizationSentences, DefineSentiment, MongoDBServices
 
 
 class NlpProcesData:
@@ -17,6 +13,9 @@ class NlpProcesData:
 
     def handle_articles(self) -> None:
         for article in self.clients_news:
+            if "sentiment" in article:
+                continue
+
             sentiments_list = self.process_article(
                 article["content"], self.code_word
             )
@@ -31,6 +30,4 @@ class NlpProcesData:
             if code_word.lower() in sent.lower():
                 sentiment = self.sentiment_service.process_text(text=sent)
                 sentiments_list.append((sent, sentiment))
-            else:
-                sentiments_list.append((sent,))
         return sentiments_list
