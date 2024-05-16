@@ -36,9 +36,7 @@ def setup_model(signal, sender, **kwargs):
         _ = manager.tokenizer
 
     if os.getenv("WORKER") == "sending":
-        ...
-    # _ = manager.boto3_client
-    # _ = manager.google_client
+        _ = manager.boto3_secret_manager
 
 
 @celery_app.task(name="clients_pipeline.tasks.run_task_chain")

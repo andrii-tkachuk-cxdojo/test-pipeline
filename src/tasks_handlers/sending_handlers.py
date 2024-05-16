@@ -15,7 +15,7 @@ class SendingStrategy(ABC):
         self.client_id = client_id
 
     def load_env(self):
-        self.credentials = SecretsManager.get_secret(self.client_id)
+        self.credentials = SecretsManager().get_secret(self.client_id)
 
     @abstractmethod
     def send(self, data):

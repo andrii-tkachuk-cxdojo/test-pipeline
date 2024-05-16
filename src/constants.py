@@ -17,3 +17,7 @@ MONGO_HOST: Final = env.str("MONGO_HOST")
 MONGO_PORT: Final = env.str("MONGO_PORT")
 MONGO_USER: Final = env.str("MONGO_USER")
 MONGO_PASSWORD: Final = env.str("MONGO_PASSWORD")
+
+AWS_ACCESS_KEY_ID: Final = env.str("AWS_SECRET_ACCESS_KEY")
+AWS_SECRET_ACCESS_KEY: Final = env.str("AWS_SECRET_ACCESS_KEY")
+AWS_REGION: Final = env.str("AWS_REGION")

@@ -1,3 +1,4 @@
+import boto3
 import httpx
 import spacy
 from httpx import Client
@@ -6,7 +7,13 @@ from singleton_decorator import singleton
 from spacy import Language
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
-from src.constants import NEWSCATCHER_API_KEY, SPACY_MODEL_CORE
+from src.constants import (
+    AWS_ACCESS_KEY_ID,
+    AWS_REGION,
+    AWS_SECRET_ACCESS_KEY,
+    NEWSCATCHER_API_KEY,
+    SPACY_MODEL_CORE,
+)
 from src.db import MongoDBInit
 
 
@@ -26,6 +33,19 @@ class DependencyManager:
         self._spacy_core_nlp = None
 
         self._mongodb_connection = None
+        self._boto3_secret_manager = None
+
+    @property
+    def boto3_secret_manager(self) -> boto3:
+        if self._boto3_secret_manager is None:
+            self._boto3_secret_manager = boto3.client(
+                "secretsmanager",
+                aws_access_key_id=AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+                region_name=AWS_REGION,
+            )
+            logger.info("AWS SecretManager boto3 client initialized success.")
+        return self._boto3_secret_manager
 
     @property
     def mongodb_connection(self) -> MongoDBInit:

@@ -2,7 +2,6 @@ import base64
 import json
 from typing import Dict, List, Literal, Optional, Union
 
-import boto3
 import torch
 from bson import ObjectId
 from loguru import logger
@@ -162,11 +161,14 @@ class HttpHook:
 
 
 class SecretsManager:
-    @staticmethod
-    def get_secret(client_id: str):
-        client = boto3.client("secretsmanager")
+    def __init__(self):
+        self.boto3_secret_manager = DependencyManager().boto3_secret_manager
+
+    def get_secret(self, client_id: str):
         try:
-            response = client.get_secret_value(SecretId=client_id)
+            response = self.boto3_secret_manager.get_secret_value(
+                SecretId=client_id
+            )
             if "SecretString" in response:
                 return json.loads(response["SecretString"])
             else:
