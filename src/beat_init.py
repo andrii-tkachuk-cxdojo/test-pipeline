@@ -9,11 +9,14 @@ from src.utils import MongoDBServices
 @celery_app.on_after_configure.connect
 def setup_periodic_tasks(sender: AppCeleryConfig, **kwargs) -> None:
     logger.info("Connecting to the database from beat...")
-    connection = MongoDBInit()
-    connection.connect()
-    connection.load_data_from_json("clients.json")
 
-    schedule_data = MongoDBServices(connection=connection).get_all_clients()
+    with MongoDBInit() as connection:
+        connection.connect()
+        connection.load_data_from_json("clients.json")
+        schedule_data = MongoDBServices(
+            connection=connection
+        ).get_all_clients()
+
     for client in schedule_data:
         update_schedule_from_db(sender, client)
         logger.info(

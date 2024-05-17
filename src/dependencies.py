@@ -50,9 +50,7 @@ class DependencyManager:
     @property
     def mongodb_connection(self) -> MongoDBInit:
         if self._mongodb_connection is None:
-            connection = MongoDBInit()
-            connection.connect()
-            self._mongodb_connection = connection
+            self._mongodb_connection = MongoDBInit().connect()
         return self._mongodb_connection
 
     @property
@@ -94,3 +92,7 @@ class DependencyManager:
                 f"Spacy model '{SPACY_MODEL_CORE}' initialized success."
             )
         return self._spacy_core_nlp
+
+    def __del__(self):
+        if self._mongodb_connection:
+            self._mongodb_connection.close()

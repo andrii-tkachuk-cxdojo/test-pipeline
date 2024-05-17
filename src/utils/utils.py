@@ -1,5 +1,6 @@
 import base64
 import json
+from datetime import datetime, timedelta
 from typing import Dict, List, Literal, Optional, Union
 
 import torch
@@ -68,7 +69,11 @@ class MongoDBServices:
                         {"$addToSet": {"clients": client_id}},
                     )
             else:
-                new_article = {"article": article, "clients": [client_id]}
+                new_article = {
+                    "article": article,
+                    "clients": [client_id],
+                    "created_at": datetime.utcnow(),
+                }
                 new_articles.append(new_article)
 
         if new_articles:
@@ -82,7 +87,15 @@ class MongoDBServices:
     ) -> Optional[List[Dict]]:
         news_collection = self.connection.get_collection(MONGO_COLLECTION_NEWS)
 
-        query = {"clients": client_id}
+        start_of_today = datetime.utcnow().replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        end_of_today = start_of_today + timedelta(days=1)
+
+        query = {
+            "clients": client_id,
+            "created_at": {"$gte": start_of_today, "$lt": end_of_today},
+        }
         projection = {"article": 1, "_id": 1}
         if nlp:
             projection["sentiment"] = 1
@@ -164,10 +177,10 @@ class SecretsManager:
     def __init__(self):
         self.boto3_secret_manager = DependencyManager().boto3_secret_manager
 
-    def get_secret(self, client_id: str):
+    def get_secret(self, client_id: str) -> Optional[Dict]:
         try:
             response = self.boto3_secret_manager.get_secret_value(
-                SecretId=client_id
+                SecretId=f"clients/{client_id}"
             )
             if "SecretString" in response:
                 return json.loads(response["SecretString"])
@@ -178,4 +191,3 @@ class SecretsManager:
                 return json.loads(decoded_binary_secret)
         except Exception as e:
             logger.error(f"Error retrieving secret {client_id}: {str(e)}")
-            return None

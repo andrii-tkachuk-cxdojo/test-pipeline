@@ -19,6 +19,15 @@ class MongoDBInit:
         self._mongo_client = None
         self._db = None
 
+    def __enter__(self):
+        self.connect()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close_connection()
+        if exc_type:
+            logger.error(f"An error in MongoDBInit occurred: {exc_val}")
+
     def connect(self) -> MongoClient:
         if not self._mongo_client:
             MONGODB_URL = f"mongodb://{MONGO_USER}:{MONGO_PASSWORD}@{MONGO_HOST}:{MONGO_PORT}"
