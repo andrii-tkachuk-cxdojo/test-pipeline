@@ -76,7 +76,7 @@ def create_celery_app(name, config_class, task_routes) -> Celery:
 
     app.config_from_object(config_class)
     app.conf.task_routes = task_routes
-    # app.conf.timezone = "Europe/Kiev"
+    app.conf.timezone = "Europe/Kiev"
     return app
 
 
@@ -86,7 +86,7 @@ celery_app = create_celery_app(
     {
         "clients_pipeline.tasks.run_task_chain": {"queue": "io-worker"},
         "newscatcher_hook": {"queue": "io-worker"},
-        "specific_process_news_data": {"queue": "cpu-worker"},
+        "ml_process_news_data": {"queue": "cpu-worker"},
         "send_data": {"queue": "sender-worker"},
     },
 )

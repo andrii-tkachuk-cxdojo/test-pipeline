@@ -43,7 +43,7 @@ def setup_model(signal, sender, **kwargs):
 def run_task_chain(**kwargs) -> None:
     task_chain = chain(
         task_newscatcher_hook.s(client=kwargs["client_id"])
-        | task_specific_process_news_data.s()
+        | task_ml_process_news_data.s()
         | task_send_data.s()
     )
     task_chain.apply_async()
@@ -79,13 +79,13 @@ def task_newscatcher_hook(self, **kwargs) -> Dict:
 
 
 @celery_app.task(
-    name="specific_process_news_data",
+    name="ml_process_news_data",
     bind=True,
     retry_backoff=True,
     max_retries=5,
     retry_backoff_max=120,
 )
-def task_specific_process_news_data(self, data: Dict) -> Dict:
+def task_ml_process_news_data(self, data: Dict) -> Dict:
     client_data = MongoDBServices().get_specific_client_data(
         client_id=data["client_id"]
     )
@@ -140,7 +140,7 @@ def task_send_data(data: Dict) -> None:
 
 @task_failure.connect(sender=run_task_chain)
 @task_failure.connect(sender=task_newscatcher_hook)
-@task_failure.connect(sender=task_specific_process_news_data)
+@task_failure.connect(sender=task_ml_process_news_data)
 @task_failure.connect(sender=task_send_data)
 def task_failure_handler(
     sender=None,
