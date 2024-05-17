@@ -7,7 +7,12 @@ docker-compose up --build
 CELERY_BACKEND_URL=mongodb://username:password@celery-mongodb:27017/
 CELERY_BROKER_URL=amqp://newscatcher:R6881t0q@celery-rabbitmq:5672/
 
-MONGO_USER=username
+RABBITMQ_DEFAULT_USER=newscatcher
+RABBITMQ_DEFAULT_PASS=R6881t0q
+RABBITMQ_PORT=5672
+RABBITMQ_PORT_WEB=15672
+
+MONGO_USER=newscatcher
 MONGO_PASSWORD=password
 MONGO_PORT=27017
 MONGO_HOST=celery-mongodb
@@ -16,7 +21,7 @@ MONGO_COLLECTION_NEWS=news
 MONGO_COLLECTION_CLIENTS=clients
 
 # Flower for monitorin tasks
-FLOWER_USER=newscatcher_admin
+FLOWER_USER=newscatcher
 FLOWER_PASSWORD=...
 FLOWER_PORT=6655
 
