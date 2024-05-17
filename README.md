@@ -15,16 +15,14 @@ MONGO_DB=etl-db
 MONGO_COLLECTION_NEWS=news
 MONGO_COLLECTION_CLIENTS=clients
 
-RABBITMQ_DEFAULT_USER=newscatcher
-RABBITMQ_DEFAULT_PASS=...
-RABBITMQ_PORT=5672
-# RABBITMQ_PORT_WEB=15672
-
+# Flower for monitorin tasks
 FLOWER_USER=newscatcher_admin
 FLOWER_PASSWORD=...
 FLOWER_PORT=6655
 
 NEWSCATCHER_API_KEY=...
+
+# Model to divide text into sentences 
 SPACY_MODEL_CORE=en_core_web_trf
 
 # For AWS SecretManager
