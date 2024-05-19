@@ -78,7 +78,7 @@ services:
     container_name: celery-sender-worker
     restart: always
     command: >
-      sh -c "WORKER=sending celery -A src.celery_conf.celery_app worker -l info -n celery-receiver-worker -Q sender-worker"
+      sh -c "WORKER=sending celery -A src.celery_conf.celery_app worker -l info -n celery-sender-worker -Q sender-worker"
     volumes:
       - .:/app
     networks:

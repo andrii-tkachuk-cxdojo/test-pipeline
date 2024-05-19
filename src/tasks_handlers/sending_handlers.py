@@ -11,11 +11,12 @@ from src.utils import SecretsManager
 
 class SendingStrategy(ABC):
     def __init__(self, client_id: str):
-        self.credentials = None
         self.client_id = client_id
+        self.credentials = self.load_env
 
+    @property
     def load_env(self):
-        self.credentials = SecretsManager().get_secret(self.client_id)
+        return SecretsManager().get_secret(self.client_id)
 
     @abstractmethod
     def send(self, data):
@@ -55,9 +56,11 @@ class S3SendStrategy(SendingStrategy):
 
 class GooglePubSubSendStrategy(SendingStrategy):
     def send(self, data):
-        publisher = pubsub_v1.PublisherClient.from_service_account_json(
+        # TODO: ! (adding 'topic_id' to env)
+        publisher_data = pubsub_v1.PublisherClient.from_service_account_json(
             self.credentials
         )
+        publisher = json.loads(publisher_data)
         topic_path = publisher.topic_path(
             self.credentials["project_id"], self.credentials["topic_id"]
         )

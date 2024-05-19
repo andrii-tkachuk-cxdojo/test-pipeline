@@ -83,7 +83,10 @@ class MongoDBServices:
                 print(f"Bulk write error: {bwe.details}")
 
     def get_clients_news(
-        self, client_id: str, nlp: bool = False
+        self,
+        client_id: str,
+        nlp: bool = False,
+        exclude_object_id: bool = False,
     ) -> Optional[List[Dict]]:
         news_collection = self.connection.get_collection(MONGO_COLLECTION_NEWS)
 
@@ -96,7 +99,7 @@ class MongoDBServices:
             "clients": client_id,
             "created_at": {"$gte": start_of_today, "$lt": end_of_today},
         }
-        projection = {"article": 1, "_id": 1}
+        projection = {"article": 1, "_id": 0 if exclude_object_id else 1}
         if nlp:
             projection["sentiment"] = 1
 
@@ -105,7 +108,10 @@ class MongoDBServices:
         articles = []
         for doc in articles_cursor:
             article_data = doc.get("article", {})
-            article_data["_id"] = doc["_id"]
+
+            if not exclude_object_id:
+                article_data["_id"] = doc["_id"]
+
             if nlp:
                 sentiment = doc.get("sentiment", None)
                 if sentiment:

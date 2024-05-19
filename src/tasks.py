@@ -123,7 +123,9 @@ def task_send_data(self, **kwargs) -> None:
     )
 
     clients_news = MongoDBServices().get_clients_news(
-        client_id=kwargs["client_id"], nlp=client_data["nlp"]
+        client_id=kwargs["client_id"],
+        nlp=client_data["nlp"],
+        exclude_object_id=True,
     )
     if clients_news:
         strategy.send(clients_news)
