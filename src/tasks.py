@@ -118,7 +118,7 @@ def task_send_data(self, **kwargs) -> None:
     client_data = MongoDBServices().get_specific_client_data(
         client_id=kwargs["client_id"]
     )
-    strategy = SendingStrategyFactory(
+    strategy = SendingStrategyFactory().get_strategy(
         sending_mode=client_data["send_to"], client_id=kwargs["client_id"]
     )
 

@@ -70,12 +70,12 @@ class SendingStrategyFactory:
     @staticmethod
     def get_strategy(
         client_id: str,
-        sending_mode: str = "auto",
+        sending_mode: str,
     ) -> SendingStrategy:
         strategies = {
             "sqs": SQSSendStrategy,
-            "s3": S3SendStrategy,
-            "pub/sub": GooglePubSubSendStrategy,
+            "s3_path": S3SendStrategy,
+            "pub_sub": GooglePubSubSendStrategy,
         }
         strategy_class = strategies.get(sending_mode)
         if not strategy_class:
