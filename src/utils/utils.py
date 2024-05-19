@@ -9,16 +9,14 @@ from loguru import logger
 from pymongo.errors import BulkWriteError
 
 from src.constants import MONGO_COLLECTION_CLIENTS, MONGO_COLLECTION_NEWS
-from src.db import MongoDBInit
+
+# from src.db import MongoDBInit
 from src.dependencies import DependencyManager
 
 
 class MongoDBServices:
-    def __init__(self, connection: Optional[MongoDBInit] = None):
-        if connection:
-            self.connection = connection
-        else:
-            self.connection = DependencyManager().mongodb_connection
+    def __init__(self):
+        self.connection = DependencyManager().mongodb_connection
 
     def get_all_clients(self) -> list:
         clients_collection = self.connection.get_collection(

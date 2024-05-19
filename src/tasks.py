@@ -42,7 +42,7 @@ def setup_model(signal, sender, **kwargs):
 @celery_app.task(name="clients_pipeline.tasks.run_task_chain")
 def run_task_chain(**kwargs) -> None:
     task_chain = chain(
-        task_newscatcher_hook.s(client=kwargs["client_id"])
+        task_newscatcher_hook.s(client_id=kwargs["client_id"])
         | task_ml_process_news_data.s()
         | task_send_data.s()
     )
@@ -85,27 +85,32 @@ def task_newscatcher_hook(self, **kwargs) -> Dict:
     max_retries=5,
     retry_backoff_max=120,
 )
-def task_ml_process_news_data(self, data: Dict) -> Dict:
+def task_ml_process_news_data(self, **kwargs) -> Dict:
     client_data = MongoDBServices().get_specific_client_data(
-        client_id=data["client_id"]
+        client_id=kwargs["client_id"]
     )
-    logger.info(f"Checked NLP requirement for client_id '{data['client_id']}'")
+    logger.info(
+        f"Checked NLP requirement for client_id '{kwargs['client_id']}'"
+    )
 
     if client_data["nlp"]:
         clients_news = MongoDBServices().get_clients_news(
-            client_id=data["client_id"], nlp=client_data["nlp"]
+            client_id=kwargs["client_id"], nlp=client_data["nlp"]
         )
-        NlpProcesData(
-            clients_news=clients_news,
-            code_word=client_data["newscatcher_params"]["q"],
-        ).handle_articles()
-        logger.info(
-            f"Processed with NLP for client '{data['client_id']}' success."
-        )
+        if clients_news:
+            NlpProcesData(
+                clients_news=clients_news,
+                code_word=client_data["newscatcher_params"]["q"],
+            ).handle_articles()
+            logger.info(
+                f"Processed with NLP for client '{kwargs['client_id']}' success."
+            )
+        else:
+            logger.warning("Unfortunately, the actual data for NLP not found.")
     else:
-        logger.info(f"Client '{data['client_id']}' not needed NLP.")
+        logger.info(f"Client '{kwargs['client_id']}' not needed NLP.")
     return {
-        "client_id": data["client_id"],
+        "client_id": kwargs["client_id"],
     }
 
 
@@ -116,20 +121,23 @@ def task_ml_process_news_data(self, data: Dict) -> Dict:
     max_retries=3,
     retry_backoff_max=60,
 )
-def task_send_data(data: Dict) -> None:
+def task_send_data(self, **kwargs) -> None:
     client_data = MongoDBServices().get_specific_client_data(
-        client_id=data["client_id"], data="send_to"
+        client_id=kwargs["client_id"], data="send_to"
     )
     strategy = SendingStrategyFactory(
-        sending_mode=client_data["send_to"], client_id=data["client_id"]
+        sending_mode=client_data["send_to"], client_id=kwargs["client_id"]
     )
 
     clients_news = MongoDBServices().get_clients_news(
-        client_id=data["client_id"], nlp=client_data["nlp"]
+        client_id=kwargs["client_id"], nlp=client_data["nlp"]
     )
-    strategy.send(clients_news)
+    if clients_news:
+        strategy.send(clients_news)
+    else:
+        strategy.send("Unfortunately, the actual data for you not found.")
     logger.info(
-        f"Data for client_id '{data['client_id']}' sent and pipeline is finished"
+        f"Data for client_id '{kwargs['client_id']}' sent and pipeline is finished"
     )
 
 

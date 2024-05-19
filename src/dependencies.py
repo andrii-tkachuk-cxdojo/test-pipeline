@@ -50,7 +50,9 @@ class DependencyManager:
     @property
     def mongodb_connection(self) -> MongoDBInit:
         if self._mongodb_connection is None:
-            self._mongodb_connection = MongoDBInit().connect()
+            connection = MongoDBInit()
+            connection.connect()
+            self._mongodb_connection = connection
         return self._mongodb_connection
 
     @property

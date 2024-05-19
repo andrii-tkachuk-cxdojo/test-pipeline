@@ -11,8 +11,12 @@ def setup_periodic_tasks(sender: AppCeleryConfig, **kwargs) -> None:
     logger.info("Connecting to the database from beat...")
 
     with MongoDBInit() as connection:
-        connection.connect()
-        connection.load_data_from_json("clients.json")
+        try:
+            connection.connect()
+            connection.load_data_from_json("clients.json")
+        except Exception:
+            logger.warning("Client`s data already exist.")
+
         schedule_data = MongoDBServices(
             connection=connection
         ).get_all_clients()

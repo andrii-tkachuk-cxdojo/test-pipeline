@@ -56,7 +56,7 @@ class S3SendStrategy(SendingStrategy):
 class GooglePubSubSendStrategy(SendingStrategy):
     def send(self, data):
         publisher = pubsub_v1.PublisherClient.from_service_account_json(
-            self.credentials["service_account_json"]
+            self.credentials
         )
         topic_path = publisher.topic_path(
             self.credentials["project_id"], self.credentials["topic_id"]
