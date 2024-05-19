@@ -1,5 +1,4 @@
 import os
-from typing import Dict
 
 from celery import chain, signals
 from celery.signals import task_failure
@@ -42,9 +41,9 @@ def setup_model(signal, sender, **kwargs):
 @celery_app.task(name="clients_pipeline.tasks.run_task_chain")
 def run_task_chain(**kwargs) -> None:
     task_chain = chain(
-        task_newscatcher_hook.s(client_id=kwargs["client_id"])
-        | task_ml_process_news_data.s()
-        | task_send_data.s()
+        task_newscatcher_hook.si(client_id=kwargs["client_id"])
+        | task_ml_process_news_data.si(client_id=kwargs["client_id"])
+        | task_send_data.si(client_id=kwargs["client_id"])
     )
     task_chain.apply_async()
 
@@ -56,7 +55,7 @@ def run_task_chain(**kwargs) -> None:
     max_retries=3,
     retry_backoff_max=60,
 )
-def task_newscatcher_hook(self, **kwargs) -> Dict:
+def task_newscatcher_hook(self, **kwargs) -> None:
     newscatcher_params = MongoDBServices().get_specific_client_data(
         client_id=kwargs["client_id"], data="newscatcher_params"
     )
@@ -73,9 +72,6 @@ def task_newscatcher_hook(self, **kwargs) -> Dict:
         logger.warning(
             "Unfortunately, the actual data in NewsCatcher not found."
         )
-    return {
-        "client_id": kwargs["client_id"],
-    }
 
 
 @celery_app.task(
@@ -85,7 +81,7 @@ def task_newscatcher_hook(self, **kwargs) -> Dict:
     max_retries=5,
     retry_backoff_max=120,
 )
-def task_ml_process_news_data(self, **kwargs) -> Dict:
+def task_ml_process_news_data(self, **kwargs) -> None:
     client_data = MongoDBServices().get_specific_client_data(
         client_id=kwargs["client_id"]
     )
@@ -109,9 +105,6 @@ def task_ml_process_news_data(self, **kwargs) -> Dict:
             logger.warning("Unfortunately, the actual data for NLP not found.")
     else:
         logger.info(f"Client '{kwargs['client_id']}' not needed NLP.")
-    return {
-        "client_id": kwargs["client_id"],
-    }
 
 
 @celery_app.task(
@@ -123,7 +116,7 @@ def task_ml_process_news_data(self, **kwargs) -> Dict:
 )
 def task_send_data(self, **kwargs) -> None:
     client_data = MongoDBServices().get_specific_client_data(
-        client_id=kwargs["client_id"], data="send_to"
+        client_id=kwargs["client_id"]
     )
     strategy = SendingStrategyFactory(
         sending_mode=client_data["send_to"], client_id=kwargs["client_id"]
